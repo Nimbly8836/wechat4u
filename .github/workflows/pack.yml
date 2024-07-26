@@ -1,4 +1,4 @@
-name: pack.yml
+name: Package and Release
 
 on:
   push:
@@ -52,4 +52,4 @@ jobs:
           asset_name: ${{ env.TARBALL_NAME }}
           tag: ${{ github.ref }}
           overwrite: true
-          body: "version ${{ github.ref }}"
+          body: ${{ github.ref }}

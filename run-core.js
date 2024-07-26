@@ -146,13 +146,13 @@ bot.on('login', () => {
   /**
    * 发送大文件 测试
    */
-  bot.sendMsg({
-    file: fs.createReadStream('./media/35mb.zip'),
-    filename: '30mb.zip'
-  }, ToUserName)
-    .catch(err => {
-      bot.emit('error', err)
-    })
+  // bot.sendMsg({
+  //   file: fs.createReadStream('./media/21mb.zip'),
+  //   filename: '21mb.zip'
+  // }, ToUserName)
+  //   .catch(err => {
+  //     bot.emit('error', err)
+  //   })
 
   /**
    * 发送文件

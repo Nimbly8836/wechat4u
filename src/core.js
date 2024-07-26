@@ -489,7 +489,7 @@ export default class WechatCore {
         // 创建每个块的 FormData
         const form = new FormData()
         form.append('name', name)
-        form.append('type', 'application/octet-stream')
+        form.append('type', type)
         form.append('lastModifiedDate', new Date().toGMTString())
         form.append('size', size)
         form.append('mediatype', mediatype)
@@ -617,7 +617,7 @@ export default class WechatCore {
         let currentChunkIndex = 0
 
         // 分块上传逻辑
-        const processChunk = res => {
+        const processChunk = (res, signature) => {
           if (currentChunkIndex < bufferList.length) {
             const chunkObj = bufferList[currentChunkIndex]
             return this.request({
@@ -629,20 +629,21 @@ export default class WechatCore {
             }).then(res => {
               currentChunkIndex++
               // 递归处理下一个块
-              return processChunk(res)
+              return processChunk(res, signature)
             })
           } else {
             // 所有块上传完成
             return Promise.resolve({
               data: {
-                MediaId: res.data.MediaId
+                MediaId: res.data.MediaId,
+                Signature: signature
               }
             })
           }
         }
 
-        // // 大于大概20MB的文件上传会失败 TODO
-        if (size > 20 * 1024 * 1024) {
+        // 大于大概22MB的文件上传会失败 具体没测试
+        if (size > 22 * 1024 * 1024) {
 
           const fileMd5 = randomUuid()
           let assign = {
@@ -698,10 +699,10 @@ export default class WechatCore {
                 oldJson.Signature = res.data.Signature
                 oldJson.FileMd5 = fileMd5
                 let newBuffer = Buffer.from(JSON.stringify(oldJson), 'utf8')
-                it = Buffer.concat([startBuff, newBuffer, endBuff])
+                it.data = Buffer.concat([startBuff, newBuffer, endBuff])
               }
             })
-            return processChunk()
+            return processChunk(null, res.data.Signature)
           }).catch(err => {
             debug(err)
             err.tips = '上传媒体文件失败'
@@ -717,7 +718,7 @@ export default class WechatCore {
         assert.ok(mediaId, res)
 
         return {
-          name: name, size: size, ext: ext, mediatype: mediatype, mediaId: mediaId
+          name: name, size: size, ext: ext, mediatype: mediatype, mediaId: mediaId, signature: data.Signature,
         }
       })
     }).catch(err => {
@@ -787,7 +788,7 @@ export default class WechatCore {
     })
   }
 
-  sendDoc (mediaId, name, size, ext, to) {
+  sendDoc (mediaId, name, size, ext, to, signature) {
     return Promise.resolve().then(() => {
       let params = {
         'pass_ticket': this.PROP.passTicket, 'fun': 'async', 'f': 'json', 'lang': 'zh_CN'
@@ -800,7 +801,8 @@ export default class WechatCore {
           'FromUserName': this.user.UserName,
           'ToUserName': to,
           'LocalID': clientMsgId,
-          'ClientMsgId': clientMsgId
+          'ClientMsgId': clientMsgId,
+          'Signature': signature
         }
       }
       return this.request({
